@@ -16,7 +16,7 @@
 Поскольку Orange Pi Zero 3W поставляется с Debian 11 (Bullseye) и BSP-ядром `6.6.98-sun60iw2`, нужно сначала настроить всё на родной системе, а затем обновиться до Debian 13.
 
 ```
-Debian 11 (сток) → GPU/NPU/VPU → HDMI → Debian 13 → закрепление ядра
+Debian 11 (сток) → GPU/NPU/VPU → HDMI → закрепление ядра → Debian 13
 ```
 
 ---
@@ -27,8 +27,8 @@ Debian 11 (сток) → GPU/NPU/VPU → HDMI → Debian 13 → закрепле
 2. [NPU: VeriSilicon VIP](#2-npu-verisilicon-vip)
 3. [VPU: Cedar Video Engine](#3-vpu-cedar-video-engine)
 4. [HDMI: кастомное разрешение 1360x768](#4-hdmi-кастомное-разрешение-1360x768)
-5. [Обновление до Debian 13](#5-обновление-до-debian-13)
-6. [Закрепление BSP-ядра](#6-закрепление-bsp-ядра)
+5. [Закрепление BSP-ядра](#5-закрепление-bsp-ядра)
+6. [Обновление до Debian 13](#6-обновление-до-debian-13)
 7. [Бенчмарки](#7-бенчмарки)
 8. [Известные проблемы](#8-известные-проблемы)
 9. [Источники](#9-источники)
@@ -249,24 +249,42 @@ X-GNOME-Autostart-enabled=true
 
 ---
 
-## 5. Обновление до Debian 13
+## 5. Закрепление BSP-ядра
 
-После настройки всех акселераторов на стоковой системе обновляемся до Debian 13 (Trixie).
+Перед обновлением до Debian 13 закрепляем BSP-ядро, чтобы при dist-upgrade оно не заменилось на стоковое Debian (в котором нет драйверов GPU/NPU/VPU):
 
-### 5.1 Меняем sources.list
+```bash
+sudo apt-mark hold \
+    linux-image-current-sun60iw2 \
+    linux-dtb-current-sun60iw2 \
+    linux-u-boot-orangepizero3w-current
+```
+
+Проверка:
+```bash
+sudo apt-mark showhold
+```
+
+---
+
+## 6. Обновление до Debian 13
+
+После настройки всех акселераторов и закрепления ядра обновляемся до Debian 13 (Trixie).
+
+### 6.1 Меняем sources.list
 
 ```bash
 sudo sed -i 's/bullseye/trixie/g' /etc/apt/sources.list
 ```
 
-### 5.2 Обновление
+### 6.2 Обновление
 
 ```bash
 sudo apt update
 sudo apt dist-upgrade -y
 ```
 
-После этого система становится Debian 13, BSP-ядро (`6.6.98-sun60iw2`) сохраняется.
+После этого система становится Debian 13, BSP-ядро (`6.6.98-sun60iw2`) остаётся на месте (hold).
 
 **Важно:** После dist-upgrade могут остаться пакеты, которые не обновились из-за hold (gstreamer, vlc, glmark2). Для полного обновления нужно снять с них hold:
 
@@ -279,24 +297,6 @@ sudo apt dist-upgrade -y
 
 ```bash
 sudo dpkg --remove --force-remove-reinstreq xserver-xorg-img-bxm
-```
-
----
-
-## 6. Закрепление BSP-ядра
-
-После обновления закрепляем ядро, чтобы при следующих apt upgrade оно не заменилось на стоковое Debian (в котором нет драйверов GPU/NPU/VPU):
-
-```bash
-sudo apt-mark hold \
-    linux-image-current-sun60iw2 \
-    linux-dtb-current-sun60iw2 \
-    linux-u-boot-orangepizero3w-current
-```
-
-Проверка:
-```bash
-sudo apt-mark showhold
 ```
 
 ---
