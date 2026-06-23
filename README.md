@@ -22,10 +22,9 @@
 5. [NPU: VeriSilicon VIP](#5-npu-verisilicon-vip)
 6. [VPU: Cedar Video Engine](#6-vpu-cedar-video-engine)
 7. [HDMI: кастомное разрешение 1360x768](#7-hdmi-кастомное-разрешение-1360x768)
-8. [VPN: установка Happ](#8-vpn-установка-happ)
-9. [Бенчмарки](#9-бенчмарки)
-10. [Известные проблемы](#10-известные-проблемы)
-11. [Источники](#11-источники)
+8. [Бенчмарки](#8-бенчмарки)
+9. [Известные проблемы](#9-известные-проблемы)
+10. [Источники](#10-источники)
 
 ---
 
@@ -98,7 +97,7 @@ cd OrangePiZero3W-GPU-VPU
 wget https://github.com/radxa-build/radxa-a733/releases/download/rsdk-r2/radxa-a733_bullseye_kde_r2.output_512.img.xz
 xz -d radxa-a733_bullseye_kde_r2.output_512.img.xz
 
-# Монтируем образ
+# Монтируем образ (третий раздел, GPT)
 sudo mount -o loop,ro,offset=$((679936 * 512)) radxa-a733_bullseye_kde_r2.output_512.img /mnt
 
 # Копируем Vulkan драйвер и ICD
@@ -267,38 +266,7 @@ X-GNOME-Autostart-enabled=true
 
 ---
 
-## 8. VPN: установка Happ
-
-Happ — клиент для прокси/VPN (замена FlClashX).
-
-### Установка через GitHub
-
-```bash
-wget 'https://github.com/Happ-proxy/happ-desktop/releases/download/2.18.1/Happ.linux.arm64.deb'
-# Если dpkg не поддерживает zstd — конвертируем:
-mkdir happ-deb && cd happ-deb
-ar x ../Happ.linux.arm64.deb
-zstd -d control.tar.zst -o control.tar
-zstd -d data.tar.zst -o data.tar
-xz -z -6 control.tar
-xz -z -6 data.tar
-ar rcs ../Happ.linux.arm64-repack.deb debian-binary control.tar.xz data.tar.xz
-sudo dpkg -i ../Happ.linux.arm64-repack.deb
-```
-
-Или просто распаковать data.tar напрямую:
-```bash
-mkdir happ-deb && cd happ-deb
-ar x ../Happ.linux.arm64.deb
-zstd -d data.tar.zst -o data.tar
-sudo tar -xf data.tar -C /
-```
-
-Проверка: `happd --version` (ответ: `happd 2.18.1`).
-
----
-
-## 9. Бенчмарки
+## 8. Бенчмарки
 
 Сравнение OPI Zero 3W vs Raspberry Pi 5 vs Raspberry Pi 4:
 
@@ -312,7 +280,7 @@ sudo tar -xf data.tar -C /
 
 ---
 
-## 10. Известные проблемы
+## 9. Известные проблемы
 
 ### 🔊 Звук по HDMI не работает
 
@@ -326,7 +294,7 @@ hdmi drv audio set disable done  ← через ~20 секунд
 ```
 
 **Что перепробовано (не помогло):**
-- Кастомный EDID через `drm.edid_firmware` в cmdline — не подхватывается sunxi-драйвером
+- Кастомный EDID через `drm.edid_firmware` в cmdline (не подхватывается sunxi-драйвером)
 - EDID override через debugfs (`edid_override`) — не влияет на sysfs
 - Обновление libdrm до 2.4.124
 - Откат libasound2-data до версии 1.2.4 (как в Debian 11)
@@ -342,11 +310,12 @@ hdmi drv audio set disable done  ← через ~20 секунд
 
 ---
 
-## 11. Источники
+## 10. Источники
 
 - [Incipiens/OrangePiZero3W-GPU-VPU](https://github.com/Incipiens/OrangePiZero3W-GPU-VPU) — Docker-сборка GPU+VPU userspace
 - [Radxa Cubie A7S образы](https://docs.radxa.com/en/cubie/a7s/download) — исходник PowerVR DDK
 - [radxa-build/radxa-a733](https://github.com/radxa-build/radxa-a733) — релизы Radxa образов
 - [radxa/allwinner-target](https://github.com/radxa/allwinner-target) (ветка `target-a733-v1.4.6`) — пакеты с DDK
-- [Happ-proxy/happ-desktop](https://github.com/Happ-proxy/happ-desktop) — VPN-клиент Happ
 - [Статья XDA](https://www.xda-developers.com/orange-pi-zero-3w-beats-raspberry-pi-5-cant-use-half-hardware/) — обзор с GPU-тюнингом
+- [Настройка GPU/NPU на OPI Zero 3W (наш репозиторий)](https://github.com/Haidegger22/orangepi-zero3w-gpu-pcie) — проблема с битым модулем-предохранителем pvrsrvkm и решением через отложенную загрузку
+- [Разрешение HDMI 1360×768 (наш репозиторий)](https://github.com/Haidegger22/orangepi-zero3w-hdmi-resolution) — Xorg-конфиг для LG TV
