@@ -324,6 +324,96 @@ X-GNOME-Autostart-enabled=true
 
 ---
 
+## 5. Аудио (HDMI)
+
+**Важно:** Драйвер `sunxi-hdmi` не имеет аппаратного регулятора громкости (Master/PCM). Регулировка возможна только программно через PulseAudio или на стороне телевизора.
+
+### 5.1 ALSA
+
+`/etc/asound.conf`:
+```
+defaults.pcm.card 0
+defaults.pcm.device 0
+defaults.ctl.card 0
+```
+
+### 5.2 PulseAudio — default sink
+
+Добавить в `/etc/pulse/default.pa`:
+```
+# HDMI sink для sunxi
+load-module module-alsa-sink device=hw:0,0 sink_name=hdmi
+```
+
+Перезапуск PulseAudio:
+```bash
+pulseaudio -k
+sleep 1
+pulseaudio --start
+```
+
+### 5.3 Иконка громкости в трее
+
+**Вариант A: pasystray (через PulseAudio, рекомендуется)**
+
+```bash
+sudo apt install -y pasystray
+```
+
+`~/.config/autostart/pasystray.desktop`:
+```
+[Desktop Entry]
+Type=Application
+Name=PulseAudio System Tray
+Exec=pasystray
+X-GNOME-Autostart-enabled=true
+```
+
+**Вариант B: volumeicon-alsa (через ALSA, если PulseAudio не работает)**
+
+```bash
+sudo apt install -y volumeicon-alsa
+```
+
+`~/.config/volumeicon/volumeicon`:
+```
+[Alsa]
+card=default
+control=Master
+logarithmic_scale=true
+
+[StatusIcon]
+stepsize=3
+lmb_slider=true
+mmb_mute=true
+show_sound_level=true
+
+[Hotkeys]
+up_enabled=true
+down_enabled=true
+mute_enabled=true
+up=XF86AudioRaiseVolume
+down=XF86AudioLowerVolume
+mute=XF86AudioMute
+```
+
+### 5.4 HDMI как default sink при входе в Xfce
+
+```bash
+mkdir -p ~/.config/autostart
+```
+
+`~/.config/autostart/hdmi-audio.desktop`:
+```
+[Desktop Entry]
+Type=Application
+Name=Set HDMI as Default Audio Sink
+Exec=pactl set-default-sink hdmi
+X-GNOME-Autostart-enabled=true
+```
+
+---
+
 ## 6. Закрепление BSP-ядра
 
 Перед обновлением до Debian 13 закрепляем BSP-ядро, чтобы при dist-upgrade оно не заменилось на стоковое Debian (в котором нет драйверов GPU/NPU/VPU):
