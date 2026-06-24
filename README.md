@@ -249,6 +249,80 @@ X-GNOME-Autostart-enabled=true
 
 ---
 
+### 4.4 Аудио (HDMI)
+
+**Важно:** Драйвер `sunxi-hdmi` не имеет аппаратного регулятора громкости (Master/PCM). Регулировка возможна только программно через PulseAudio или на стороне телевизора.
+
+#### 4.4.1 Настройка ALSA
+
+`/etc/asound.conf`:
+```
+defaults.pcm.card 0
+defaults.pcm.device 0
+defaults.ctl.card 0
+```
+
+#### 4.4.2 PulseAudio — default sink
+
+Добавить в `/etc/pulse/default.pa`:
+```
+# HDMI sink для sunxi
+load-module module-alsa-sink device=hw:0,0 sink_name=hdmi
+```
+
+Перезапуск PulseAudio:
+```bash
+pulseaudio -k
+sleep 1
+pulseaudio --start
+# или systemctl --user restart pulseaudio
+```
+
+#### 4.4.3 Иконка громкости в трее
+
+**Вариант A: pasystray (через PulseAudio, рекомендуется)**
+
+```bash
+sudo apt install -y pasystray
+```
+
+`~/.config/autostart/pasystray.desktop`:
+```
+[Desktop Entry]
+Type=Application
+Name=PulseAudio System Tray
+Exec=pasystray
+X-GNOME-Autostart-enabled=true
+```
+
+**Вариант B: volumeicon-alsa (через ALSA, если PulseAudio не работает)**
+
+```bash
+sudo apt install -y volumeicon-alsa
+```
+
+`~/.config/autostart/volumeicon.desktop`:
+```
+[Desktop Entry]
+Type=Application
+Name=Volume Icon
+Exec=volumeicon
+X-GNOME-Autostart-enabled=true
+```
+
+#### 4.4.4 HDMI как default sink при входе
+
+`~/.config/autostart/hdmi-audio.desktop`:
+```
+[Desktop Entry]
+Type=Application
+Name=Set HDMI as Default Audio Sink
+Exec=pactl set-default-sink hdmi
+X-GNOME-Autostart-enabled=true
+```
+
+---
+
 ## 5. Закрепление BSP-ядра
 
 Перед обновлением до Debian 13 закрепляем BSP-ядро, чтобы при dist-upgrade оно не заменилось на стоковое Debian (в котором нет драйверов GPU/NPU/VPU):
@@ -317,31 +391,29 @@ sudo dpkg --remove --force-remove-reinstreq xserver-xorg-img-bxm
 
 ## 8. Известные проблемы
 
-### 🔊 Звук по HDMI не работает
+### 🔊 Звук по HDMI
+
+#### На Debian 11 (штатная система)
+
+Звук по HDMI работает из коробки. После обновления до Debian 13 может перестать работать на некоторых телевизорах.
+
+#### На Debian 13 (после обновления)
 
 **Симптом:** PulseAudio/ALSA видят HDMI-выход, звук «идёт» (sink в состоянии RUNNING), но на телевизоре тишина.
 
-**Причина:** Драйвер `sunxi-hdmi` на ядре `6.6.98-sun60iw2` не может прочитать EDID по I2C/DDC с телевизора LG (ошибка `i2c read edid failed`). Без EDID драйвер не активирует аудиоканал — идёт цикл:
-```
-dw audio unset when hdmi_on(0) audio_on(0)
-hdmi drv audio set enable done
-hdmi drv audio set disable done  ← через ~20 секунд
-```
+**Причина:** Драйвер `sunxi-hdmi` на ядре `6.6.98-sun60iw2` не может прочитать EDID по I2C/DDC с некоторых телевизоров (ошибка `i2c read edid failed`). Без EDID драйвер не активирует аудиоканал — идёт цикл включения/отключения звука.
 
 **Что перепробовано (не помогло):**
 - Кастомный EDID через `drm.edid_firmware` в cmdline (не подхватывается sunxi-драйвером)
 - EDID override через debugfs (`edid_override`) — не влияет на sysfs
-- Обновление libdrm до 2.4.124
-- Откат libasound2-data до версии 1.2.4 (как в Debian 11)
-- Установка ALSA UCM-конфигов из Radxa образа
+- Обновление libdrm, ALSA UCM-конфиги
 - Переключение audio data format в amixer
-- Отключение DPMS
 
-**Решение:** На Debian 11 звук работал с этим же кабелем — проблема в связке Debian 13 userland + BSP-ядро 6.6.98-sun60iw2. Варианты:
-- Другой HDMI-кабель (с рабочими DDC-линиями)
+**Решение:**
 - Использовать Bluetooth-колонки/наушники (BT 5.4 работает)
 - USB-аудиокарта
 - Пересобрать BSP-ядро с исправлением sunxi-hdmi
+- Либо оставаться на Debian 11 для звука по HDMI
 
 ---
 
